@@ -117,27 +117,25 @@ console.log("🚀 Iniciando VerifyBot-AV (WPPConnect)...");
 wppconnect
   .create({
     session: "VerifyBotAV",
-    folderNameToken: "tokens", // Carpeta donde guarda la sesión
+    folderNameToken: "tokens",
 
-    // Mejora visual del QR
     catchQR: (base64Qr, asciiQR, attempt) => {
-      console.log(`\n📸 QR Code (Intento ${attempt}) - Escanéalo rápido:\n`);
-      
-      // QR compacto y legible en consola
+      console.log(\n📸 QR Code generado (Intento ${attempt}) - ¡Escanea rápido!\n);
+
       qrcodeTerminal.generate(base64Qr, { small: true });
 
-      // Link directo para abrir en navegador/celular (¡super útil!)
       const qrLink = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
         base64Qr
-      )}&size=400x400`;
-      console.log("\n🔗 O abre este link en tu celular para escanear:");
+      )}&size=500x500&margin=20`;
+      
+      console.log("\n🔗 O abre este link directo en tu celular (recomendado):");
       console.log(qrLink);
-      console.log("\n");
+      console.log("\n¡Escanea antes de que expire!\n");
     },
 
     puppeteerOptions: {
       headless: true,
-      executablePath: chromiumPath || undefined, // Usa si encuentra chromium local
+      executablePath: chromiumPath || undefined,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
