@@ -6,12 +6,13 @@ import { createClient } from "@supabase/supabase-js";
 dotenv.config();
 
 // ======================================================
-// 🔌 Conexión REAL a Supabase (la que enviaste)
+// 🔌 Conexión REAL a Supabase
 // ======================================================
 console.log("🟦 Conectando a Supabase...");
 
-const supabaseUrl = 'https://alksajdslujdxkasymiw.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsa3NhamRzbHVqZHhrYXN5bWl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3NDY4MTYsImV4cCI6MjA3MjMyMjgxNn0.XSnLDa_LjmxpVrgY864CrR-hxSb7hM17gQdV3W8VWGk';
+const supabaseUrl = "https://alksajdslujdxkasymiw.supabase.co";
+const supabaseAnonKey =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsa3NhamRzbHVqZHhrYXN5bWl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3NDY4MTYsImV4cCI6MjA3MjMyMjgxNn0.XSnLDa_LjmxpVrgY864CrR-hxSb7hM17gQdV3W8VWGk";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -97,7 +98,6 @@ async function sendCode(client, row) {
     } else {
       console.log(`📌 OK — Registro ID ${row.id} actualizado.`);
     }
-
   } catch (err) {
     console.log("❌ ERROR enviando mensaje:");
     console.log(err);
@@ -114,13 +114,22 @@ console.log("🚀 Iniciando VerifyBot-AV (WPPConnect)...");
 wppconnect
   .create({
     session: "VerifyBotAV",
-    browserArgs: ["--no-sandbox", "--disable-setuid-sandbox"],
-    puppeteerOptions: {
-      headless: false,
-    },
+
     catchQR: (qr) => {
       console.log("📸 Escanea este QR para conectar:");
       console.log(qr);
+    },
+
+    puppeteerOptions: {
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--no-first-run",
+        "--no-zygote"
+      ]
     }
   })
   .then((client) => {
