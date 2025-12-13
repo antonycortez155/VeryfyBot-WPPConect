@@ -106,19 +106,18 @@ wppconnect
       console.log(qr);
     },
 
-    puppeteerOptions: {
-      headless: true,
-      executablePath: "/usr/bin/chromium", // ✅ CLAVE PARA RAILWAY / NIXPACKS
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--no-first-run",
-        "--no-zygote",
-        "--single-process"
-      ]
-    }
+   puppeteerOptions: {
+  headless: true,
+  args: [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+    "--no-first-run",
+    "--no-zygote",
+    "--single-process"
+  ]
+}
   })
   .then((client) => {
     console.log("🔥 WPPConnect iniciado correctamente");
