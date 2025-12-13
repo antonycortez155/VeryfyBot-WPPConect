@@ -1,27 +1,31 @@
 [phases.setup]
 nixPkgs = [
   "nodejs_20",
-  "chromium",
+
+  # 🔥 Dependencias CRÍTICAS para Chrome / Puppeteer
   "glib",
   "nss",
   "atk",
   "cups",
-  "dbus",
   "xorg.libX11",
   "xorg.libXcomposite",
-  "xorg.libXcursor",
   "xorg.libXdamage",
-  "xorg.libXext",
-  "xorg.libXfixes",
-  "xorg.libXi",
   "xorg.libXrandr",
-  "xorg.libXrender",
-  "xorg.libXScrnSaver",
+  "xorg.libXcursor",
+  "xorg.libXfixes",
+  "xorg.libXext",
+  "xorg.libXi",
   "xorg.libXtst",
+  "libdrm",
+  "alsa-lib",
   "pango",
   "cairo",
-  "alsa-lib",
-  "libdrm",
+  "dbus",
+  "expat",
+  "fontconfig",
+  "freetype",
+  "libuuid",
+  "libnotify",
   "mesa"
 ]
 
