@@ -92,6 +92,22 @@ async function sendCode(client, row) {
   console.log("----------------------------------------------------");
 }
 
+
+import { execSync } from "child_process";
+
+function getChromiumPath() {
+  try {
+    const path = execSync("which chromium").toString().trim();
+    console.log("🧭 Chromium detectado en:", path);
+    return path;
+  } catch {
+    console.error("❌ Chromium no encontrado en PATH");
+    return null;
+  }
+}
+
+const chromiumPath = getChromiumPath();
+
 // ======================================================
 // 🚀 Iniciar WPPConnect
 // ======================================================
@@ -106,17 +122,19 @@ wppconnect.create({
   },
 
   puppeteerOptions: {
-    headless: true,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
-      "--no-first-run",
-      "--no-zygote",
-      "--single-process"
-    ]
-  }
+  headless: true,
+  executablePath: chromiumPath,
+  args: [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+    "--no-first-run",
+    "--no-zygote",
+    "--single-process"
+  ]
+}
+
 })
   .then((client) => {
     console.log("🔥 WPPConnect iniciado correctamente");
