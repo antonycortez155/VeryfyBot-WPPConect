@@ -1,0 +1,19 @@
+{
+  "dependencies": {
+    "@supabase/supabase-js": "^2.84.0",
+    "@wppconnect-team/wppconnect": "^1.37.6",
+    "dotenv": "^17.2.3",
+    "node-cron": "^4.2.1"
+  },
+  "name": "verifybot-av-wppconnect",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
