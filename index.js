@@ -1,27 +1,20 @@
 import wppconnect from "@wppconnect-team/wppconnect";
-import dotenv from "dotenv";
 import cron from "node-cron";
 import { createClient } from "@supabase/supabase-js";
 
-dotenv.config();
+// ======================================================
+// 🔑 CREDENCIALES SUPABASE (HARDCODED - COMO ANTES)
+// ======================================================
+const SUPABASE_URL = "https://alksajdslujdxkasymiw.supabase.co";
+const SUPABASE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsa3NhamRzbHVqZHhrYXN5bWl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3NDY4MTYsImV4cCI6MjA3MjMyMjgxNn0.XSnLDa_LjmxpVrgY864CrR-hxSb7hM17gQdV3W8VWGk";
 
 // ======================================================
-// 🛑 Validación de variables de entorno
-// ======================================================
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
-  console.error("❌ Variables de entorno SUPABASE_URL o SUPABASE_KEY no definidas");
-  process.exit(1);
-}
-
-// ======================================================
-// 🔌 Conexión a Supabase (por variables de entorno)
+// 🔌 Conexión a Supabase
 // ======================================================
 console.log("🟦 Conectando a Supabase...");
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_KEY;
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 console.log("✅ Supabase conectado.");
 
@@ -48,7 +41,6 @@ async function getPendingCodes() {
   console.log("🔎 Consultando Supabase (pending_codes)...");
 
   const now = new Date().toISOString();
-  console.log("🕒 Fecha actual ISO:", now);
 
   const { data, error } = await supabase
     .from("pending_codes")
@@ -61,11 +53,7 @@ async function getPendingCodes() {
     return [];
   }
 
-  console.log("📥 Registros recibidos:", data.length);
-  if (data.length > 0) {
-    console.log("📄 Primer registro:", data[0]);
-  }
-
+  console.log(`📥 Registros recibidos: ${data.length}`);
   return data;
 }
 
@@ -74,25 +62,17 @@ async function getPendingCodes() {
 // ======================================================
 async function sendCode(client, row) {
   console.log("----------------------------------------------------");
-  console.log(`📤 INICIO envío de código (ID ${row.id})`);
-  console.log("📱 Teléfono:", row.phone);
-  console.log("🔢 Código:", row.code);
+  console.log(`📤 Enviando código ID ${row.id}`);
 
   try {
     const phone = row.phone.replace(/\D/g, "");
     const jid = `${phone}@c.us`;
 
-    console.log("📨 Enviando a JID:", jid);
-
     const msg = buildMessage(row.code);
 
-    console.log("📤 Enviando mensaje real...");
     await client.sendText(jid, msg);
 
-    console.log(`✅ Mensaje enviado correctamente a ${row.phone}`);
-
-    // 📌 Marcar como enviado en Supabase
-    console.log("📌 Marcando como enviado en Supabase...");
+    console.log(`✅ Código enviado a ${row.phone}`);
 
     const { error } = await supabase
       .from("pending_codes")
@@ -100,14 +80,13 @@ async function sendCode(client, row) {
       .eq("id", row.id);
 
     if (error) {
-      console.log("❌ ERROR marcando enviado:", error);
+      console.log("❌ Error actualizando Supabase:", error);
     } else {
-      console.log(`📌 OK — Registro ID ${row.id} actualizado.`);
+      console.log(`📌 Código ${row.id} marcado como enviado`);
     }
 
   } catch (err) {
-    console.log("❌ ERROR enviando mensaje:");
-    console.log(err);
+    console.log("❌ Error enviando WhatsApp:", err);
   }
 
   console.log("----------------------------------------------------");
@@ -123,7 +102,7 @@ wppconnect
     session: "VerifyBotAV",
 
     catchQR: (qr) => {
-      console.log("📸 Escanea este QR para conectar:");
+      console.log("📸 Escanea este QR:");
       console.log(qr);
     },
 
@@ -142,19 +121,14 @@ wppconnect
   })
   .then((client) => {
     console.log("🔥 WPPConnect iniciado correctamente");
-    console.log("⏱️ Iniciando cron... cada 20 segundos");
+    console.log("⏱️ CRON activo (cada 20 segundos)");
 
-    // ======================================================
-    // ⏱️ CRON — Ejecutar cada 20 segundos
-    // ======================================================
     cron.schedule("*/20 * * * * *", async () => {
-      console.log("===================================================");
-      console.log("🔄 CRON: Verificando códigos pendientes...");
-
+      console.log("🔄 Buscando códigos pendientes...");
       const rows = await getPendingCodes();
 
       if (rows.length === 0) {
-        console.log("🟦 No hay códigos pendientes por enviar.");
+        console.log("🟦 No hay códigos pendientes");
       }
 
       for (const row of rows) {
@@ -163,6 +137,5 @@ wppconnect
     });
   })
   .catch((err) => {
-    console.log("💥 ERROR CRÍTICO iniciando WPPConnect:");
-    console.log(err);
+    console.log("💥 ERROR CRÍTICO iniciando WPPConnect:", err);
   });
