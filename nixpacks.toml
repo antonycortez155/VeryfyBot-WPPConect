@@ -1,8 +1,8 @@
-[phases.setup]
-nixPkgs = [
+[nixpacks]
+packages = [
   "nodejs_20",
 
-  # 🔥 Dependencias CRÍTICAS para Chrome / Puppeteer
+  # DEPENDENCIAS PARA CHROME / PUPPETEER
   "glib",
   "nss",
   "atk",
