@@ -158,14 +158,15 @@ async function sendCode(code) {
     await client.getChatById(to).catch(() => null);
     await new Promise((r) => setTimeout(r, 1500));
 
-    const message = `Tu código es: ${code.code}`;
+    const message = buildMessage(code.code);
     console.log("🧩 Construyendo mensaje para código", code.code);
 
     await client.sendText(to, message);
 
+    // Marcar solo si se envió correctamente
     await supabase
       .from("pending_codes")
-      .update({ status: "sent", sent_at: new Date().toISOString() })
+      .update({ sent: true, sent_at: new Date().toISOString(), status: "sent" })
       .eq("id", code.id);
 
     console.log("📤 Código enviado correctamente a", to);
