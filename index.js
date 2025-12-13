@@ -97,28 +97,28 @@ async function sendCode(client, row) {
 // ======================================================
 console.log("🚀 Iniciando VerifyBot-AV (WPPConnect)...");
 
-wppconnect
-  .create({
-    session: "VerifyBotAV",
+wppconnect.create({
+  session: "VerifyBotAV",
 
-    catchQR: (qr) => {
-      console.log("📸 Escanea este QR:");
-      console.log(qr);
-    },
+  catchQR: (qr) => {
+    console.log("📸 Escanea este QR:");
+    console.log(qr);
+  },
 
   puppeteerOptions: {
-  headless: true,
-  args: [
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-    "--disable-dev-shm-usage",
-    "--disable-gpu",
-    "--no-first-run",
-    "--no-zygote",
-    "--single-process"
-  ]
-}
-  })
+    headless: true,
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium",
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--no-first-run",
+      "--no-zygote",
+      "--single-process"
+    ]
+  }
+})
   .then((client) => {
     console.log("🔥 WPPConnect iniciado correctamente");
     console.log("⏱️ CRON activo (cada 20 segundos)");
