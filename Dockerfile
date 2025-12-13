@@ -1,7 +1,5 @@
-# Usa una imagen base slim con Node 20 (ajusta si usas otra versión)
 FROM node:20-slim
 
-# Instala las dependencias del sistema necesarias para Chromium/Puppeteer
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     fonts-liberation \
@@ -40,15 +38,11 @@ RUN apt-get update && apt-get install -y \
     xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Directorio de trabajo
 WORKDIR /app
 
-# Copia package.json y instala dependencias
 COPY package*.json ./
-RUN npm ci  # Usa npm ci para producción (o yarn si lo prefieres)
+RUN npm ci
 
-# Copia el resto del código
 COPY . .
 
-# Comando para ejecutar tu bot
-CMD ["node", "index.js"]  # Ajusta si tu archivo principal es otro (ej. app.js)
+CMD ["node", "index.js"]
