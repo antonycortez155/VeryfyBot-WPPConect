@@ -1,34 +1,37 @@
 [phases.setup]
 nixPkgs = [
   "nodejs_20",
+
+  # Chromium
   "chromium",
+
+  # Core libs
+  "glib",
   "nss",
-  "atk",
-  "cups",
+  "nspr",
+  "expat",
   "dbus",
-  "xorg.libX11",
-  "xorg.libXcomposite",
-  "xorg.libXcursor",
-  "xorg.libXdamage",
-  "xorg.libXext",
-  "xorg.libXfixes",
-  "xorg.libXi",
-  "xorg.libXrandr",
-  "xorg.libXrender",
-  "xorg.libXScrnSaver",
-  "xorg.libXtst",
+
+  # UI / Accessibility (necesarias aunque sea headless)
+  "gtk3",
+  "atk",
+  "at-spi2-atk",
+  "cups",
   "pango",
   "cairo",
-  "alsa-lib",
+
+  # X11 / rendering
   "libdrm",
-  "mesa"
+  "libxcb",
+  "libxkbcommon",
+  "mesa",
+
+  # Audio (Chromium lo requiere igual)
+  "alsa-lib"
 ]
 
 [phases.install]
-cmds = ["npm install"]
-
-[phases.build]
-cmds = ["echo build complete"]
+cmds = ["npm ci"]
 
 [start]
 cmd = "node index.js"
