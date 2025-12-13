@@ -108,7 +108,6 @@ wppconnect
 
   puppeteerOptions: {
   headless: true,
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "chromium",
   args: [
     "--no-sandbox",
     "--disable-setuid-sandbox",
