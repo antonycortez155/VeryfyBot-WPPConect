@@ -1,24 +1,29 @@
 [phases.setup]
 nixPkgs = [
-  "nodejs_18",
+  "nodejs_20",
   "chromium",
   "glib",
   "nss",
   "atk",
   "cups",
-  "xorg.libXcomposite",
-  "xorg.libXrandr",
-  "xorg.libXdamage",
-  "xorg.libXcursor",
-  "xorg.libXfixes",
-  "xorg.libXi",
-  "xorg.libXtst",
+  "dbus",
   "xorg.libX11",
-  "xorg.libXScrnSaver",
-  "xorg.libXrender",
-  "alsa-lib",
+  "xorg.libXcomposite",
+  "xorg.libXdamage",
+  "xorg.libXext",
+  "xorg.libXfixes",
+  "xorg.libXrandr",
+  "xorg.libxcb",
+  "xorg.libxkbcommon",
   "pango",
   "cairo",
-  "expat",
-  "dbus"
+  "alsa-lib",
+  "at-spi2-atk",
+  "at-spi2-core"
 ]
+
+[phases.build]
+cmds = ["npm install"]
+
+[start]
+cmd = "node index.js"

@@ -6,20 +6,27 @@ import { createClient } from "@supabase/supabase-js";
 dotenv.config();
 
 // ======================================================
-// 🔌 Conexión REAL a Supabase
+// 🛑 Validación de variables de entorno
+// ======================================================
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+  console.error("❌ Variables de entorno SUPABASE_URL o SUPABASE_KEY no definidas");
+  process.exit(1);
+}
+
+// ======================================================
+// 🔌 Conexión a Supabase (por variables de entorno)
 // ======================================================
 console.log("🟦 Conectando a Supabase...");
 
-const supabaseUrl = "https://alksajdslujdxkasymiw.supabase.co";
-const supabaseAnonKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFsa3NhamRzbHVqZHhrYXN5bWl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3NDY4MTYsImV4cCI6MjA3MjMyMjgxNn0.XSnLDa_LjmxpVrgY864CrR-hxSb7hM17gQdV3W8VWGk";
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 console.log("✅ Supabase conectado.");
 
 // ======================================================
-// 📩 Mensaje de código
+// 📩 Construir mensaje de código
 // ======================================================
 function buildMessage(code) {
   console.log(`🧩 Construyendo mensaje para código ${code}`);
@@ -80,12 +87,11 @@ async function sendCode(client, row) {
     const msg = buildMessage(row.code);
 
     console.log("📤 Enviando mensaje real...");
-
     await client.sendText(jid, msg);
 
     console.log(`✅ Mensaje enviado correctamente a ${row.phone}`);
 
-    // 📌 Actualizar en Supabase
+    // 📌 Marcar como enviado en Supabase
     console.log("📌 Marcando como enviado en Supabase...");
 
     const { error } = await supabase
@@ -98,6 +104,7 @@ async function sendCode(client, row) {
     } else {
       console.log(`📌 OK — Registro ID ${row.id} actualizado.`);
     }
+
   } catch (err) {
     console.log("❌ ERROR enviando mensaje:");
     console.log(err);
@@ -128,7 +135,8 @@ wppconnect
         "--disable-dev-shm-usage",
         "--disable-gpu",
         "--no-first-run",
-        "--no-zygote"
+        "--no-zygote",
+        "--single-process"
       ]
     }
   })
