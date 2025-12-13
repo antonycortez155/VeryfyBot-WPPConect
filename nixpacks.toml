@@ -1,33 +1,12 @@
-[nixpacks]
-packages = [
-  "nodejs_20",
+[phases.setup]
+nixPkgs = ["...", "gtk3", "glib", "nss", "nspr", "atk", "at-spi2-atk", "libcups", "dbus", "libdrm", "mesa", "expat", "libxkbcommon", "libxshmfence", "libxcomposite", "libxdamage", "libxrandr", "libxfixes", "libxext", "libxcb", "libx11", "alsa-lib", "pango", "cairo", "gdk-pixbuf"]
 
-  # DEPENDENCIAS PARA CHROME / PUPPETEER
-  "glib",
-  "nss",
-  "atk",
-  "cups",
-  "xorg.libX11",
-  "xorg.libXcomposite",
-  "xorg.libXdamage",
-  "xorg.libXrandr",
-  "xorg.libXcursor",
-  "xorg.libXfixes",
-  "xorg.libXext",
-  "xorg.libXi",
-  "xorg.libXtst",
-  "libdrm",
-  "alsa-lib",
-  "pango",
-  "cairo",
-  "dbus",
-  "expat",
-  "fontconfig",
-  "freetype",
-  "libuuid",
-  "libnotify",
-  "mesa"
-]
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = []
 
 [start]
 cmd = "node index.js"
+

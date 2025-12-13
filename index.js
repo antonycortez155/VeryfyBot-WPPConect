@@ -122,19 +122,17 @@ wppconnect.create({
   },
 
   puppeteerOptions: {
-  headless: true,
-  executablePath: chromiumPath,
-  args: [
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-    "--disable-dev-shm-usage",
-    "--disable-gpu",
-    "--no-first-run",
-    "--no-zygote",
-    "--single-process"
-  ]
-}
-
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--disable-web-security',
+      '--disable-features=IsolateOrigins,site-per-process',
+      '--single-process', // opcional, ayuda con memoria
+    ],
+  },
 })
   .then((client) => {
     console.log("🔥 WPPConnect iniciado correctamente");
