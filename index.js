@@ -120,7 +120,7 @@ wppconnect
     folderNameToken: "tokens",
 
     catchQR: (base64Qr, asciiQR, attempt) => {
-      console.log(\n📸 QR Code generado (Intento ${attempt}) - ¡Escanea rápido!\n);
+      console.log(`\n📸 QR Code generado (Intento ${attempt}) - ¡Escanea rápido!\n`);
 
       qrcodeTerminal.generate(base64Qr, { small: true });
 
@@ -148,6 +148,7 @@ wppconnect
       ],
     },
   })
+
   .then((client) => {
     console.log("🔥 WPPConnect iniciado correctamente");
     console.log("⏱️ CRON activo (cada 20 segundos)");
