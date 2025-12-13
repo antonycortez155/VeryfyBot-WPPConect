@@ -1,6 +1,8 @@
 import wppconnect from "@wppconnect-team/wppconnect";
 import cron from "node-cron";
 import { createClient } from "@supabase/supabase-js";
+import { execSync } from "child_process";
+import qrcodeTerminal from "qrcode-terminal"; // ← NUEVA DEPENDENCIA (instálala)
 
 // ======================================================
 // 🔑 CREDENCIALES SUPABASE (HARDCODED - COMO ANTES)
@@ -84,7 +86,6 @@ async function sendCode(client, row) {
     } else {
       console.log(`📌 Código ${row.id} marcado como enviado`);
     }
-
   } catch (err) {
     console.log("❌ Error enviando WhatsApp:", err);
   }
@@ -92,9 +93,9 @@ async function sendCode(client, row) {
   console.log("----------------------------------------------------");
 }
 
-
-import { execSync } from "child_process";
-
+// ======================================================
+// 🔍 Detección de Chromium (opcional en Railway con Dockerfile)
+// ======================================================
 function getChromiumPath() {
   try {
     const path = execSync("which chromium").toString().trim();
@@ -113,31 +114,47 @@ const chromiumPath = getChromiumPath();
 // ======================================================
 console.log("🚀 Iniciando VerifyBot-AV (WPPConnect)...");
 
-wppconnect.create({
-  session: "VerifyBotAV",
+wppconnect
+  .create({
+    session: "VerifyBotAV",
+    folderNameToken: "tokens", // Carpeta donde guarda la sesión
 
-  catchQR: (qr) => {
-    console.log("📸 Escanea este QR:");
-    console.log(qr);
-  },
+    // Mejora visual del QR
+    catchQR: (base64Qr, asciiQR, attempt) => {
+      console.log(`\n📸 QR Code (Intento ${attempt}) - Escanéalo rápido:\n`);
+      
+      // QR compacto y legible en consola
+      qrcodeTerminal.generate(base64Qr, { small: true });
 
-  puppeteerOptions: {
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--disable-web-security',
-      '--disable-features=IsolateOrigins,site-per-process',
-      '--single-process', // opcional, ayuda con memoria
-    ],
-  },
-})
+      // Link directo para abrir en navegador/celular (¡super útil!)
+      const qrLink = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
+        base64Qr
+      )}&size=400x400`;
+      console.log("\n🔗 O abre este link en tu celular para escanear:");
+      console.log(qrLink);
+      console.log("\n");
+    },
+
+    puppeteerOptions: {
+      headless: true,
+      executablePath: chromiumPath || undefined, // Usa si encuentra chromium local
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--disable-web-security",
+        "--disable-features=IsolateOrigins,site-per-process",
+        "--single-process",
+        "--no-zygote",
+      ],
+    },
+  })
   .then((client) => {
     console.log("🔥 WPPConnect iniciado correctamente");
     console.log("⏱️ CRON activo (cada 20 segundos)");
 
+    // Cron que revisa códigos pendientes cada 20 segundos
     cron.schedule("*/20 * * * * *", async () => {
       console.log("🔄 Buscando códigos pendientes...");
       const rows = await getPendingCodes();
