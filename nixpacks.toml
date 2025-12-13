@@ -9,21 +9,27 @@ nixPkgs = [
   "dbus",
   "xorg.libX11",
   "xorg.libXcomposite",
+  "xorg.libXcursor",
   "xorg.libXdamage",
   "xorg.libXext",
   "xorg.libXfixes",
+  "xorg.libXi",
   "xorg.libXrandr",
-  "xorg.libxcb",
-  "xorg.libxkbcommon",
+  "xorg.libXrender",
+  "xorg.libXScrnSaver",
+  "xorg.libXtst",
   "pango",
   "cairo",
   "alsa-lib",
-  "at-spi2-atk",
-  "at-spi2-core"
+  "libdrm",
+  "mesa"
 ]
 
-[phases.build]
+[phases.install]
 cmds = ["npm install"]
+
+[phases.build]
+cmds = ["echo build complete"]
 
 [start]
 cmd = "node index.js"

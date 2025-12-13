@@ -108,6 +108,7 @@ wppconnect
 
     puppeteerOptions: {
       headless: true,
+      executablePath: "/usr/bin/chromium", // ✅ CLAVE PARA RAILWAY / NIXPACKS
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
