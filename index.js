@@ -114,13 +114,14 @@ wppconnect
   });
 
 // ======================================================
-// 🔎 Obtener códigos pendientes
+// 🔎 Obtener códigos pendientes (solo sent = false)
 // ======================================================
 async function getPendingCodes() {
   console.log("🔎 Consultando Supabase (pending_codes)...");
 
   const now = new Date().toISOString();
 
+  // <-- Aquí nos aseguramos de traer solo filas que NO se han enviado
   const { data, error } = await supabase
     .from("pending_codes")
     .select("*")
@@ -137,7 +138,7 @@ async function getPendingCodes() {
 }
 
 // ======================================================
-// 📤 Enviar código seguro (con LID y check de WhatsApp)
+// 📤 Enviar código seguro (actualiza sent = true)
 // ======================================================
 async function sendCode(code) {
   try {
@@ -163,7 +164,7 @@ async function sendCode(code) {
 
     await client.sendText(to, message);
 
-    // Marcar solo si se envió correctamente
+    // <-- Marcamos solo si se envió correctamente
     await supabase
       .from("pending_codes")
       .update({ sent: true, sent_at: new Date().toISOString(), status: "sent" })
