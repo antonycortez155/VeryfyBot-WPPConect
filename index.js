@@ -54,7 +54,7 @@ let client; // variable global para usar en sendCode seguro
 // ======================================================
 // 🚀 Iniciar WPPConnect
 // ======================================================
-console.log("🚀 Iniciando VerifyBot-AV (WPPConnect)...");
+console.log("🚀 Iniciando VerifyBot-AV (WPPConnect)…");
 
 wppconnect
   .create({
@@ -117,7 +117,7 @@ wppconnect
 // 🔎 Obtener códigos pendientes
 // ======================================================
 async function getPendingCodes() {
-  console.log("🔎 Consultando Supabase (pending_codes)...");
+  console.log("🔎 Consultando Supabase (pending_codes)…");
 
   const now = new Date().toISOString();
 
@@ -156,7 +156,8 @@ async function sendCode(code) {
 
     // Asegurar que el chat exista para crear LID
     await client.getChatById(to).catch(() => null);
-    await new Promise((r) => setTimeout(r, 1500));
+    // Espera corta para que se genere LID
+    await new Promise((r) => setTimeout(r, 2000));
 
     const message = buildMessage(code.code);
     console.log("🧩 Construyendo mensaje para código", code.code);
