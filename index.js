@@ -114,18 +114,17 @@ wppconnect
   });
 
 // ======================================================
-// 🔎 Obtener códigos pendientes (solo sent = false)
+// 🔎 Obtener códigos pendientes
 // ======================================================
 async function getPendingCodes() {
   console.log("🔎 Consultando Supabase (pending_codes)...");
 
   const now = new Date().toISOString();
 
-  // <-- Aquí nos aseguramos de traer solo filas que NO se han enviado
   const { data, error } = await supabase
     .from("pending_codes")
     .select("*")
-    .eq("sent", false)
+    .eq("sent", false) // solo filas no enviadas
     .gt("expires_at", now);
 
   if (error) {
@@ -138,7 +137,7 @@ async function getPendingCodes() {
 }
 
 // ======================================================
-// 📤 Enviar código seguro (actualiza sent = true)
+// 📤 Enviar código seguro (con LID y check de WhatsApp)
 // ======================================================
 async function sendCode(code) {
   try {
@@ -150,7 +149,7 @@ async function sendCode(code) {
       console.log("❌ El número no tiene WhatsApp:", to);
       await supabase
         .from("pending_codes")
-        .update({ status: "error", error_reason: "NO_WHATSAPP" })
+        .update({ status: "error", error_reason: "NO_WHATSAPP", sent: false })
         .eq("id", code.id);
       return;
     }
@@ -164,19 +163,23 @@ async function sendCode(code) {
 
     await client.sendText(to, message);
 
-    // <-- Marcamos solo si se envió correctamente
-    await supabase
+    // ✅ Marcar la fila como enviada solo después de enviar
+    const { error: updateError } = await supabase
       .from("pending_codes")
       .update({ sent: true, sent_at: new Date().toISOString(), status: "sent" })
       .eq("id", code.id);
 
-    console.log("📤 Código enviado correctamente a", to);
+    if (updateError) {
+      console.log("❌ ERROR actualizando sent en Supabase:", updateError);
+    } else {
+      console.log("📤 Código enviado correctamente y marcado como sent a", to);
+    }
   } catch (err) {
     console.log("❌ Error enviando WhatsApp:", err.message || err);
 
     await supabase
       .from("pending_codes")
-      .update({ status: "error", error_reason: err.message || "UNKNOWN" })
+      .update({ status: "error", error_reason: err.message || "UNKNOWN", sent: false })
       .eq("id", code.id);
   }
 }
