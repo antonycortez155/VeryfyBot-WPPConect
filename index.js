@@ -2,7 +2,7 @@ import wppconnect from "@wppconnect-team/wppconnect";
 import cron from "node-cron";
 import { createClient } from "@supabase/supabase-js";
 import { execSync } from "child_process";
-import qrcodeTerminal from "qrcode-terminal";
+import qrcodeTerminal from "qrcode-terminal"; // ← NUEVA DEPENDENCIA
 
 // ======================================================
 // 🔑 CREDENCIALES SUPABASE
@@ -31,11 +31,11 @@ Tu código de verificación es: *${code}*
 ⏳ Tienes 5 minutos para usarlo.
 
 Si no solicitaste este código, simplemente ignora este mensaje.
-  `.trim();
+`;
 }
 
 // ======================================================
-// 🔍 Detección de Chromium (opcional)
+// 🔍 Detección de Chromium
 // ======================================================
 function getChromiumPath() {
   try {
@@ -49,12 +49,12 @@ function getChromiumPath() {
 }
 
 const chromiumPath = getChromiumPath();
-let client;
+let client; // variable global para usar en sendCode seguro
 
 // ======================================================
 // 🚀 Iniciar WPPConnect
 // ======================================================
-console.log("🚀 Iniciando VerifyBot-AV (WPPConnect)…");
+console.log("🚀 Iniciando VerifyBot-AV (WPPConnect)...");
 
 wppconnect
   .create({
@@ -90,8 +90,8 @@ wppconnect
     },
   })
   .then(async (c) => {
-    client = c;
     console.log("🔥 WPPConnect iniciado correctamente");
+    client = c;
 
     console.log("⏱️ CRON activo (cada 20 segundos)");
     cron.schedule("*/20 * * * * *", async () => {
@@ -100,23 +100,13 @@ wppconnect
 
       if (pendingCodes.length === 0) {
         console.log("🟦 No hay códigos pendientes");
-        return;
       }
 
       for (const code of pendingCodes) {
         console.log("----------------------------------------------------");
-        console.log(`📤 Intentando enviar código ID ${code.id} a ${code.phone}`);
+        console.log("📤 Enviando código ID", code.id);
         await sendCode(code);
       }
-    });
-
-    // Eventos útiles
-    client.onStateChange((state) => {
-      console.log("🔄 Estado del cliente:", state);
-    });
-
-    client.onMessage(async (message) => {
-      console.log(`📨 Mensaje recibido de ${message.from}: ${message.body}`);
     });
   })
   .catch((err) => {
@@ -127,14 +117,14 @@ wppconnect
 // 🔎 Obtener códigos pendientes
 // ======================================================
 async function getPendingCodes() {
-  console.log("🔎 Consultando Supabase (pending_codes)…");
+  console.log("🔎 Consultando Supabase (pending_codes)...");
 
   const now = new Date().toISOString();
 
   const { data, error } = await supabase
     .from("pending_codes")
     .select("*")
-    .eq("sent", false)
+    .eq("sent", false) // solo filas no enviadas
     .gt("expires_at", now);
 
   if (error) {
@@ -143,100 +133,65 @@ async function getPendingCodes() {
   }
 
   console.log(`📥 Registros recibidos: ${data.length}`);
-  return data || [];
+  return data;
 }
 
 // ======================================================
-// 📤 Enviar código (CORREGIDO PARA NÚMEROS SIN CHAT PREVIO)
+// 📤 Enviar código seguro (con LID y check de WhatsApp)
 // ======================================================
 async function sendCode(code) {
-  console.log("----------------------------------------------------");
-  console.log(`📤 Intentando enviar código ID ${code.id} a ${code.phone}`);
-
   try {
-    if (!client || !(await client.isConnected())) {
-      console.log("❌ Cliente no conectado. Intentando más tarde...");
-      return;
-    }
+    const to = code.phone.replace(/\D/g, "").replace(/^0+/, "") + "@c.us";
 
-    // Limpiar número
-    let cleanPhone = code.phone.replace(/\D/g, "").replace(/^0+/, "");
-    const to = `${cleanPhone}@c.us`;
-
-    // Verificación opcional del número
-    let canSend = true;
-    try {
-      const status = await client.checkNumberStatus(to);
-      if (!status?.canReceiveMessage) {
-        console.log(`❌ Número ${to} no puede recibir mensajes (sin WhatsApp o bloqueado)`);
-        canSend = false;
-      }
-    } catch (e) {
-      console.log("⚠️ No se pudo verificar el número, intentando envío directo...");
-    }
-
-    if (!canSend) {
+    // Verificar que el número tenga WhatsApp
+    const status = await client.checkNumberStatus(to);
+    if (!status?.canReceiveMessage) {
+      console.log("❌ El número no tiene WhatsApp:", to);
       await supabase
         .from("pending_codes")
-        .update({ sent: false, status: "error", error_reason: "NO_WHATSAPP" })
+        .update({ status: "error", error_reason: "NO_WHATSAPP", sent: false })
         .eq("id", code.id);
       return;
     }
 
-    // Forzar creación del chat aunque no exista conversación previa
-    try {
-      await client.getChatById(to);
-      console.log("✅ Chat forzado/creado con éxito");
-    } catch (e) {
-      console.log("⚠️ No se pudo forzar el chat con getChatById, continuando...");
-    }
+    // Asegurar que el chat exista para crear LID
+    await client.getChatById(to).catch(() => null);
+    await new Promise((r) => setTimeout(r, 1500));
 
-    // Espera para que WhatsApp genere el LID interno
-    await new Promise((r) => setTimeout(r, 4000));
-
-    // Enviar el mensaje
     const message = buildMessage(code.code);
-    try {
-      await client.sendText(to, message);
-      console.log(`✅ Mensaje enviado correctamente a ${to}`);
-    } catch (err) {
-      if (err.message.includes("detached Frame")) {
-        console.log("⚠️ Frame desconectado, reintentando...");
-        await new Promise((r) => setTimeout(r, 2000));
-        await client.sendText(to, message);
-        console.log(`✅ Reintento exitoso a ${to}`);
-      } else {
-        throw err;
-      }
-    }
+    console.log("🧩 Construyendo mensaje para código", code.code);
 
-    // Marcar como enviado solo si llegó aquí
+    await client.sendText(to, message);
+
+    // ✅ Marcar la fila como enviada solo después de enviar
     const { error: updateError } = await supabase
       .from("pending_codes")
-      .update({
-        sent: true,
-        sent_at: new Date().toISOString(),
-        status: "sent",
-      })
+      .update({ sent: true, sent_at: new Date().toISOString(), status: "sent" })
       .eq("id", code.id);
 
     if (updateError) {
-      console.log("❌ Error actualizando Supabase:", updateError);
+      console.log("❌ ERROR actualizando sent en Supabase:", updateError);
     } else {
-      console.log(`📌 Código ID ${code.id} marcado como enviado`);
+      console.log("📤 Código enviado correctamente y marcado como sent a", to);
     }
   } catch (err) {
-    console.log("❌ Error enviando mensaje WhatsApp:", err.message || err);
+    console.log("❌ Error enviando WhatsApp:", err.message || err);
 
-    // Registrar error sin marcar como enviado
     await supabase
       .from("pending_codes")
-      .update({
-        status: "error",
-        error_reason: (err.message || "SEND_FAILED").substring(0, 255),
-      })
+      .update({ status: "error", error_reason: err.message || "UNKNOWN", sent: false })
       .eq("id", code.id);
   }
-
-  console.log("----------------------------------------------------");
 }
+
+// ======================================================
+// 🔧 Estado del cliente y recepción de mensajes
+// ======================================================
+client?.onStateChange((state) => {
+  console.log("🔄 Estado del cliente:", state);
+});
+
+client?.onMessage(async (message) => {
+  console.log("📨 Mensaje recibido:", message.from, message.body);
+  // Puedes agregar aquí tu lógica de respuesta automática
+});
