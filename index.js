@@ -166,7 +166,7 @@ async function sendCode(code) {
     // ✅ Marcar la fila como enviada solo después de enviar
     const { error: updateError } = await supabase
       .from("pending_codes")
-      .update({ sent: true, sent: new Date().toISOString(), status: "sent" })
+      .update({ sent: true, sent_at: new Date().toISOString(), status: "sent" })
       .eq("id", code.id);
 
     if (updateError) {
