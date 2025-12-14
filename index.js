@@ -31,11 +31,11 @@ Tu código de verificación es: *${code}*
 ⏳ Tienes 5 minutos para usarlo.
 
 Si no solicitaste este código, simplemente ignora este mensaje.
-`;
+  `.trim();
 }
 
 // ======================================================
-// 🔍 Detección de Chromium
+// 🔍 Detección de Chromium (opcional en Railway)
 // ======================================================
 function getChromiumPath() {
   try {
@@ -49,7 +49,7 @@ function getChromiumPath() {
 }
 
 const chromiumPath = getChromiumPath();
-let client; // variable global para usar en sendCode seguro
+let client; // variable global para el cliente
 
 // ======================================================
 // 🚀 Iniciar WPPConnect
@@ -90,9 +90,26 @@ wppconnect
     },
   })
   .then(async (c) => {
-    console.log("🔥 WPPConnect iniciado correctamente");
     client = c;
+    console.log("🔥 WPPConnect iniciado correctamente");
 
+    // ==================== REINICIO AUTOMÁTICO EN CASO DE DESCONEXIÓN ====================
+    client.on('connection_lost', () => {
+      console.log("⚠️ Conexión perdida con WhatsApp. Reiniciando contenedor en 10 segundos...");
+      setTimeout(() => process.exit(1), 10000);
+    });
+
+    client.on('logout', () => {
+      console.log("🚪 Sesión cerrada (logout). Reiniciando en 5 segundos...");
+      setTimeout(() => process.exit(1), 5000);
+    });
+
+    client.on('qr', () => {
+      console.log("🔄 Nuevo QR solicitado. Reiniciando contenedor...");
+      setTimeout(() => process.exit(1), 10000);
+    });
+
+    // ==================== CRON PARA ENVÍO DE CÓDIGOS ====================
     console.log("⏱️ CRON activo (cada 20 segundos)");
     cron.schedule("*/20 * * * * *", async () => {
       console.log("🔄 Buscando códigos pendientes...");
@@ -100,17 +117,29 @@ wppconnect
 
       if (pendingCodes.length === 0) {
         console.log("🟦 No hay códigos pendientes");
+        return;
       }
 
       for (const code of pendingCodes) {
         console.log("----------------------------------------------------");
-        console.log("📤 Enviando código ID", code.id);
+        console.log(`📤 Intentando enviar código ID \( {code.id} a \){code.phone}`);
         await sendCode(code);
       }
+    });
+
+    // ==================== EVENTOS EXTRA ====================
+    client.onStateChange((state) => {
+      console.log("🔄 Estado del cliente cambiado a:", state);
+    });
+
+    client.onMessage(async (message) => {
+      console.log(`📨 Mensaje recibido de \( {message.from}: \){message.body}`);
+      // Aquí puedes agregar respuestas automáticas en el futuro
     });
   })
   .catch((err) => {
     console.log("💥 ERROR CRÍTICO iniciando WPPConnect:", err);
+    setTimeout(() => process.exit(1), 10000);
   });
 
 // ======================================================
@@ -124,7 +153,7 @@ async function getPendingCodes() {
   const { data, error } = await supabase
     .from("pending_codes")
     .select("*")
-    .eq("sent", false) // solo filas no enviadas
+    .eq("sent", false)
     .gt("expires_at", now);
 
   if (error) {
@@ -133,66 +162,105 @@ async function getPendingCodes() {
   }
 
   console.log(`📥 Registros recibidos: ${data.length}`);
-  return data;
+  return data || [];
 }
 
 // ======================================================
-// 📤 Enviar código seguro (con LID y check de WhatsApp)
+// 📤 Enviar código de forma segura (MEJORADO PARA NÚMEROS SIN CHAT PREVIO)
 // ======================================================
 async function sendCode(code) {
-  try {
-    const to = code.phone.replace(/\D/g, "").replace(/^0+/, "") + "@c.us";
+  console.log("----------------------------------------------------");
+  console.log(`📤 Intentando enviar código ID \( {code.id} a \){code.phone}`);
 
-    // Verificar que el número tenga WhatsApp
-    const status = await client.checkNumberStatus(to);
-    if (!status?.canReceiveMessage) {
-      console.log("❌ El número no tiene WhatsApp:", to);
+  try {
+    if (!client) {
+      console.log("❌ Cliente no inicializado aún");
+      return;
+    }
+
+    // Verificar conexión activa
+    const isConnected = await client.isConnected();
+    if (!isConnected) {
+      console.log("❌ WhatsApp desconectado. Forzando reinicio del contenedor...");
+      setTimeout(() => process.exit(1), 8000);
+      return;
+    }
+
+    // Limpiar número (elimina todo lo que no sea dígito y ceros iniciales)
+    let cleanPhone = code.phone.replace(/\D/g, "").replace(/^0+/, "");
+
+    // === IMPORTANTE: Ajusta según tu país ===
+    // Si tus números se guardan sin código de país, agrégalo aquí.
+    // Ejemplo para Perú: si el número tiene 9 dígitos, agregar '51'
+    // if (cleanPhone.length === 9) cleanPhone = '51' + cleanPhone;
+    // Descomenta y ajusta la línea de arriba si es necesario.
+
+    const to = `${cleanPhone}@c.us`;
+
+    // Verificar si el número existe en WhatsApp (opcional pero recomendado)
+    let canSend = true;
+    try {
+      const status = await client.checkNumberStatus(to);
+      if (!status?.canReceiveMessage) {
+        console.log(`❌ Número ${to} no tiene WhatsApp activo o está bloqueado`);
+        canSend = false;
+      }
+    } catch (e) {
+      console.log("⚠️ No se pudo verificar el número, intentando envío directo...");
+    }
+
+    if (!canSend) {
       await supabase
         .from("pending_codes")
-        .update({ status: "error", error_reason: "NO_WHATSAPP", sent: false })
+        .update({ sent: false, status: "error", error_reason: "NO_WHATSAPP" })
         .eq("id", code.id);
       return;
     }
 
-    // Asegurar que el chat exista para crear LID
-    await client.getChatById(to).catch(() => null);
-    // Espera corta para que se genere LID
-    await new Promise((r) => setTimeout(r, 2000));
+    // === CLAVE: Forzar creación del chat aunque no exista conversación previa ===
+    try {
+      await client.getChatById(to);
+      console.log("✅ Chat forzado/creado con éxito");
+    } catch (e) {
+      console.log("⚠️ Error al forzar el chat, continuando de todos modos...");
+    }
 
+    // Espera suficiente para que WhatsApp genere el LID interno
+    await new Promise((r) => setTimeout(r, 3000));
+
+    // Construir y enviar mensaje
     const message = buildMessage(code.code);
-    console.log("🧩 Construyendo mensaje para código", code.code);
-
     await client.sendText(to, message);
+    console.log(`✅ Mensaje enviado correctamente a ${to}`);
 
-    // ✅ Marcar la fila como enviada solo después de enviar
-    const { error: updateError } = await supabase
+    // Marcar como enviado solo si todo salió bien
+    const { error } = await supabase
       .from("pending_codes")
-      .update({ sent: true, sent_at: new Date().toISOString(), status: "sent" })
+      .update({
+        sent: true,
+        sent_at: new Date().toISOString(),
+        status: "sent",
+      })
       .eq("id", code.id);
 
-    if (updateError) {
-      console.log("❌ ERROR actualizando sent en Supabase:", updateError);
+    if (error) {
+      console.log("❌ Error actualizando Supabase:", error);
     } else {
-      console.log("📤 Código enviado correctamente y marcado como sent a", to);
+      console.log(`📌 Código ID ${code.id} marcado como enviado permanentemente`);
     }
-  } catch (err) {
-    console.log("❌ Error enviando WhatsApp:", err.message || err);
 
+  } catch (err) {
+    console.log("❌ Error crítico al enviar mensaje:", err.message || err);
+
+    // Registrar error pero no marcar como enviado
     await supabase
       .from("pending_codes")
-      .update({ status: "error", error_reason: err.message || "UNKNOWN", sent: false })
+      .update({
+        status: "error",
+        error_reason: (err.message || "SEND_FAILED").substring(0, 255),
+      })
       .eq("id", code.id);
   }
+
+  console.log("----------------------------------------------------");
 }
-
-// ======================================================
-// 🔧 Estado del cliente y recepción de mensajes
-// ======================================================
-client?.onStateChange((state) => {
-  console.log("🔄 Estado del cliente:", state);
-});
-
-client?.onMessage(async (message) => {
-  console.log("📨 Mensaje recibido:", message.from, message.body);
-  // Puedes agregar aquí tu lógica de respuesta automática
-});
